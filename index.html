@@ -166,7 +166,9 @@
             100% { opacity: 0; transform: translateY(-50px) scale(1); }
         }
         .pop-text {
-            position: absolute;
+            /* Perbaikan Penting: fixed mencegah lompatan layout halaman saat text muncul */
+            position: fixed; 
+            z-index: 9999;
             color: #fbbf24;
             font-weight: bold;
             font-size: 1.5rem;
@@ -199,8 +201,9 @@
     </div>
 
     <!-- Music Player Toggle -->
+    <!-- Perbaikan: active:scale-95 dipindah ke div bagian dalam -->
     <div class="fixed bottom-4 left-4 md:bottom-10 md:left-10 z-[60] clickable cursor-pointer outline-none" onclick="toggleMusic(event)" style="touch-action: manipulation;">
-        <div class="bg-eid-green/80 backdrop-blur-md border border-eid-gold/50 p-3 md:p-4 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)] transition-transform duration-100 ease-out md:hover:scale-110 active:scale-95 flex items-center justify-center min-w-[3rem] min-h-[3rem] gap-2 outline-none">
+        <div class="bg-eid-green/80 backdrop-blur-md border border-eid-gold/50 p-3 md:p-4 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)] transition-transform duration-100 ease-out md:hover:scale-110 active:scale-95 origin-center flex items-center justify-center min-w-[3rem] min-h-[3rem] gap-2 outline-none">
             <svg id="music-icon" class="w-6 h-6 fill-eid-gold animate-pulse flex-shrink-0" viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/> <!-- Pause Icon Default -->
             </svg>
@@ -385,8 +388,9 @@
     </div>
 
     <!-- Interactive Bedug -->
-    <div id="bedug-wrapper" class="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[60] clickable outline-none transition-transform duration-100 ease-out md:hover:scale-110 active:scale-95" onclick="playBedug(event)" style="cursor: pointer; touch-action: manipulation;">
-        <div class="relative w-28 h-28 md:w-36 md:h-36">
+    <!-- Perbaikan: active:scale-95 dipindah ke div bagian dalam, wrapper dibiarkan statis -->
+    <div id="bedug-wrapper" class="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[60] clickable outline-none" onclick="playBedug(event)" style="cursor: pointer; touch-action: manipulation;">
+        <div class="relative w-28 h-28 md:w-36 md:h-36 transition-transform duration-100 ease-out md:hover:scale-110 active:scale-95 origin-center">
             <!-- Text Petunjuk -->
             <div class="absolute -top-6 right-0 bg-eid-gold text-green-950 text-xs font-bold px-2 py-1 rounded-full animate-bounce shadow-lg pointer-events-none whitespace-nowrap">
                 Klik Aku! 🥁
@@ -454,6 +458,9 @@
 
             // Generate Floating Particles
             generateParticles();
+
+            // Mulai Efek Kembang Api (Petasan)
+            initFireworks();
             
             // Mulai Hitung Mundur Lebaran
             initCountdown();
@@ -495,8 +502,10 @@
 
         // Bedug Animation Logic
         function playBedug(event) {
-            // Hentikan agar tap tidak diteruskan menjadi 'click' ganda di mobile
-            if (event) event.preventDefault();
+            // Hentikan default agar tidak ada double trigger
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
 
             const stick = document.getElementById('bedug-stick');
             const drum = document.getElementById('drum-body');
@@ -516,16 +525,21 @@
             // Mainkan Suara Bedug Asli
             playDrumSound();
 
-            // Munculkan teks "DUG!"
-            // Jika di mobile, event.clientX bisa undefined karena touch event berbeda, jadi kita kasih nilai fallback
-            let xPos = event.clientX;
-            let yPos = event.clientY;
+            // Tangkap koordinat sentuhan/klik untuk letak teks pop-up secara akurat
+            let xPos = null;
+            let yPos = null;
             
-            if(event.type === 'touchend' && event.changedTouches.length > 0) {
-                xPos = event.changedTouches[0].clientX;
-                yPos = event.changedTouches[0].clientY;
-            } else if (!xPos) {
-                 // Fallback posisi jika tidak terdeteksi
+            if (event) {
+                if(event.type && event.type.includes('touch') && event.changedTouches && event.changedTouches.length > 0) {
+                    xPos = event.changedTouches[0].clientX;
+                    yPos = event.changedTouches[0].clientY;
+                } else if (event.clientX !== undefined) {
+                    xPos = event.clientX;
+                    yPos = event.clientY;
+                }
+            }
+
+            if (xPos === null || yPos === null) {
                  const rect = document.getElementById('bedug-wrapper').getBoundingClientRect();
                  xPos = rect.left + rect.width / 2;
                  yPos = rect.top;
@@ -560,28 +574,22 @@
         function initAutoMusic() {
             const music = document.getElementById('bg-music');
             
-            // Banyak browser memblokir autoplay jika user belum klik apapun di halaman.
-            // Kita coba jalankan play(), dan tangkap error-nya jika diblokir.
             const playPromise = music.play();
             
             if (playPromise !== undefined) {
                 playPromise.then(_ => {
-                    // Autoplay berhasil!
                     isMusicPlaying = true;
                     updateMusicUI(true);
                 }).catch(error => {
-                    // Autoplay diblokir oleh browser (sangat umum)
                     isMusicPlaying = false;
-                    updateMusicUI(false); // Ubah kembali tombol jadi "Putar Musik"
+                    updateMusicUI(false); 
                     
-                    // Trik: Putar musik di klik PERTAMA di manapun pada layar
                     document.body.addEventListener('click', function playOnFirstClick() {
                         if (!isMusicPlaying) {
                             music.play();
                             isMusicPlaying = true;
                             updateMusicUI(true);
                         }
-                        // Hapus event listener agar tidak bentrok dengan fungsi lain
                         document.body.removeEventListener('click', playOnFirstClick);
                     }, { once: true });
                 });
@@ -590,8 +598,10 @@
 
         function toggleMusic(event) {
             if (event) {
-                event.stopPropagation(); // Mencegah klik body tertrigger saat klik tombol ini
-                event.preventDefault(); // Mencegah double trigger di mobile
+                event.stopPropagation(); 
+                if (typeof event.preventDefault === 'function') {
+                    event.preventDefault(); 
+                }
             }
             const music = document.getElementById('bg-music');
             
@@ -610,7 +620,6 @@
 
         // Fungsi Hitung Mundur Lebaran
         function initCountdown() {
-            // Silakan ganti tanggal Hari Raya Idul Fitri di sini (Format: Bulan Tanggal, Tahun Jam:Menit:Detik)
             const countDownDate = new Date("March 20, 2026 00:00:00").getTime();
 
             const x = setInterval(function() {
@@ -667,13 +676,11 @@
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 
-                // Random properties
-                const size = Math.random() * 6 + 2; // 2px - 8px
-                const leftPos = Math.random() * 100; // 0% - 100%
-                const delay = Math.random() * 10; // 0s - 10s delay
-                const duration = Math.random() * 10 + 10; // 10s - 20s speed
+                const size = Math.random() * 6 + 2; 
+                const leftPos = Math.random() * 100; 
+                const delay = Math.random() * 10; 
+                const duration = Math.random() * 10 + 10; 
                 
-                // Style the particle
                 particle.className = 'absolute rounded-full bg-eid-gold mix-blend-screen opacity-0 animate-particle-float';
                 particle.style.width = `${size}px`;
                 particle.style.height = `${size}px`;
@@ -681,7 +688,6 @@
                 particle.style.animationDuration = `${duration}s`;
                 particle.style.animationDelay = `${delay}s`;
                 
-                // Efek blur untuk ukuran yang lebih besar biar estetik
                 if(size > 5) {
                     particle.style.filter = 'blur(1px)';
                 }
@@ -690,26 +696,153 @@
             }
         }
 
+        // Fungsi Bikin Efek Kembang Api (Petasan) Warna-warni
+        function initFireworks() {
+            const canvas = document.createElement('canvas');
+            canvas.id = 'fireworks-canvas';
+            // Letakkan di belakang konten tapi di atas background
+            canvas.className = 'fixed inset-0 pointer-events-none z-[5] w-full h-full';
+            document.body.insertBefore(canvas, document.body.firstChild);
+            const ctx = canvas.getContext('2d');
+
+            let width, height;
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const particles = [];
+            const fireworks = [];
+            // Palet warna warni meriah
+            const colors = ['#fbbf24', '#fde68a', '#10b981', '#34d399', '#f472b6', '#60a5fa', '#a78bfa', '#ef4444', '#3b82f6'];
+
+            class Particle {
+                constructor(x, y, color) {
+                    this.x = x;
+                    this.y = y;
+                    this.color = color;
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 5 + 1; // Kecepatan ledakan
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed;
+                    this.alpha = 1;
+                    this.decay = Math.random() * 0.015 + 0.01; // Kecepatan pudar
+                    this.gravity = 0.05;
+                    this.size = Math.random() * 2 + 1;
+                }
+                update() {
+                    this.vy += this.gravity;
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.alpha -= this.decay;
+                }
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = this.alpha;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            class Firework {
+                constructor() {
+                    this.x = Math.random() * (width * 0.8) + (width * 0.1); // Meluncur di 80% area tengah layar
+                    this.y = height;
+                    this.targetY = height * 0.1 + Math.random() * height * 0.3; // Meledak di 10%-40% layar atas
+                    this.speed = Math.random() * 4 + 4; // Kecepatan luncur
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.dead = false;
+                    this.trail = [];
+                }
+                update() {
+                    this.trail.push({x: this.x, y: this.y});
+                    if(this.trail.length > 5) this.trail.shift();
+
+                    this.y -= this.speed;
+                    if (this.y <= this.targetY) {
+                        this.dead = true;
+                        explode(this.x, this.y, this.color);
+                    }
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                    
+                    // Gambar ekor peluncuran
+                    if(this.trail.length > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                        for(let i=1; i<this.trail.length; i++) {
+                            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                        }
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = 1;
+                        ctx.globalAlpha = 0.5;
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
+
+            function explode(x, y, coreColor) {
+                const particleCount = Math.floor(Math.random() * 40 + 40); // 40-80 partikel percikan
+                for (let i = 0; i < particleCount; i++) {
+                    // Campur warna inti dengan warna lain atau putih
+                    const pColor = Math.random() > 0.3 ? coreColor : (Math.random() > 0.5 ? '#ffffff' : colors[Math.floor(Math.random() * colors.length)]);
+                    particles.push(new Particle(x, y, pColor));
+                }
+            }
+
+            function loop() {
+                requestAnimationFrame(loop);
+                ctx.clearRect(0, 0, width, height); // Bersihkan canvas tanpa menghilangkan background web
+                
+                // Peluang luncurkan kembang api baru (atur frekuensi di sini)
+                if (Math.random() < 0.03) { 
+                    fireworks.push(new Firework());
+                }
+
+                for (let i = fireworks.length - 1; i >= 0; i--) {
+                    const f = fireworks[i];
+                    f.update();
+                    f.draw();
+                    if (f.dead) fireworks.splice(i, 1);
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.update();
+                    p.draw();
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                }
+            }
+            loop();
+        }
+
         // Fungsi Animasi Scroll (Memunculkan Elemen Saat Di-scroll)
         function initScrollAnimations() {
             const observerOptions = {
                 root: null,
                 rootMargin: '0px',
-                threshold: 0.15 // Animasi mulai saat 15% elemen terlihat di layar
+                threshold: 0.15 
             };
 
             const observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        // Tambahkan class animasi efek 'swing'
                         entry.target.classList.add('animate-swing-in');
-                        // Berhenti memantau elemen ini agar animasi tidak ngulang saat di-scroll ke atas lagi
                         observer.unobserve(entry.target);
                     }
                 });
             }, observerOptions);
 
-            // Pantau semua elemen yang punya class 'reveal-on-scroll'
             document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
                 observer.observe(el);
             });
