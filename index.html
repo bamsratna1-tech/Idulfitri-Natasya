@@ -194,12 +194,12 @@
     </div>
 
     <!-- Music Player Toggle -->
-    <div class="fixed bottom-4 left-4 md:bottom-10 md:left-10 z-[60] clickable group cursor-pointer" onclick="toggleMusic(event)">
-        <div class="bg-eid-green/80 backdrop-blur-md border border-eid-gold/50 p-3 md:p-4 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:scale-110 transition-transform flex items-center gap-3">
+    <div class="fixed bottom-4 left-4 md:bottom-10 md:left-10 z-[60] clickable cursor-pointer" onclick="toggleMusic(event)">
+        <div class="bg-eid-green/80 backdrop-blur-md border border-eid-gold/50 p-3 md:p-4 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)] transition-transform md:hover:scale-110 active:scale-95 flex items-center gap-3">
             <svg id="music-icon" class="w-6 h-6 fill-eid-gold animate-pulse" viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/> <!-- Pause Icon Default -->
             </svg>
-            <span id="music-text" class="text-eid-gold text-xs font-bold hidden md:block group-hover:block whitespace-nowrap">Jeda Musik ⏸️</span>
+            <span id="music-text" class="text-eid-gold text-xs font-bold hidden md:block whitespace-nowrap">Jeda Musik ⏸️</span>
         </div>
         <audio id="bg-music" loop autoplay>
             <source src="aset/musik.mp3" type="audio/mpeg">
@@ -380,7 +380,7 @@
     </div>
 
     <!-- Interactive Bedug -->
-    <div id="bedug-wrapper" class="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[60] clickable transition-transform hover:scale-110" onclick="playBedug(event)" style="cursor: pointer;">
+    <div id="bedug-wrapper" class="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[60] clickable transition-transform md:hover:scale-110 active:scale-95" onclick="playBedug(event)" style="cursor: pointer;">
         <div class="relative w-28 h-28 md:w-36 md:h-36">
             <!-- Text Petunjuk -->
             <div class="absolute -top-6 right-0 bg-eid-gold text-green-950 text-xs font-bold px-2 py-1 rounded-full animate-bounce shadow-lg pointer-events-none whitespace-nowrap">
